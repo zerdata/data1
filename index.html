@@ -57,23 +57,22 @@ const $ = s => document.querySelector(s);
 const menu = $("#menu"), menuBtn=$("#menuBtn"), albumList=$("#albumList");
 const qEl=$("#q"), titleEl=$("#title"), hintEl=$("#hint"), stack=$("#stack");
 const toTop=$("#toTop"), homeBtn=$("#homeBtn");
-const albumParam = new URLSearchParams(location.search).get("album") || "";
+const params = new URLSearchParams(location.search);
+const albumParam = params.get("album") || "";
 
 menuBtn.onclick = () => { menu.classList.toggle("open"); };
-document.addEventListener("click", e => {
-  if(!menu.classList.contains("open")) return;
-  if(!menu.contains(e.target) && e.target!==menuBtn) menu.classList.remove("open");
-});
+document.addEventListener("click", e => { if(menu.classList.contains("open") && !menu.contains(e.target) && e.target!==menuBtn) menu.classList.remove("open"); });
 document.addEventListener("keydown", e=>{ if(e.key==="Escape") menu.classList.remove("open"); });
-
 homeBtn.onclick = ()=> location.href="https://zerdata.github.io/";
 toTop.onclick = ()=> window.scrollTo({top:0,behavior:"smooth"});
 window.addEventListener("scroll", ()=> toTop.classList.toggle("show", scrollY>600));
 
-/* ===== albums menu ===== */
+/* ===== albums menu =====
+   File cần có: Gallery/albums.json -> ["YaeMiko","Enjo Kouhai 1",...]
+*/
 async function loadAlbums(){
   try{
-    const r = await fetch("/Gallery/albums.json?"+Date.now());
+    const r = await fetch("Gallery/albums.json?"+Date.now());
     if(r.ok){
       const arr = await r.json();
       if(Array.isArray(arr)){
@@ -88,67 +87,91 @@ async function loadAlbums(){
       }
     }
   }catch{}
-  // fallback nếu chưa có albums.json
-  albumList.innerHTML = '<div style="color:#a9b4c7;font-size:12px;margin:6px 12px">Chưa có <code>/Gallery/albums.json</code>. Dùng <code>?album=Tên</code>.</div>';
+  albumList.innerHTML = '<div style="color:#a9b4c7;font-size:12px;margin:6px 12px">Chưa có <code>Gallery/albums.json</code>. Dùng <code>?album=Tên</code>.</div>';
 }
 
-/* ===== image helpers ===== */
+/* ===== helpers ===== */
 function candidatesFor(album, i){
   const nums = [String(i), String(i).padStart(2,"0"), String(i).padStart(3,"0"), String(i).padStart(4,"0")];
   const exts = ["jpg","jpeg","png","webp","gif","avif","pic256"]; // hỗ trợ .pic256
   const out=[];
-  for(const n of nums) for(const e of exts) out.push(`/Gallery/${album}/${n}.${e}`);
+  for(const n of nums) for(const e of exts) out.push(`Gallery/${album}/${n}.${e}`);
   return out;
 }
 function setSmartSrc(img, urls){
   const next = ()=>{ const u = urls.shift(); if(!u){ img.alt += " (missing)"; return; } img.src = u; };
   img.onerror = next; img.onload = ()=>{}; next();
 }
-
-/* ===== filter (tên file/alt) ===== */
 function attachFilter(){
   qEl.oninput = ()=>{
     const q = qEl.value.trim().toLowerCase();
     stack.querySelectorAll("img.img").forEach(img=>{
-      const t = (img.alt||"").toLowerCase();
-      img.style.display = (!q || t.includes(q)) ? "" : "none";
+      const t = (img.alt||"") + " " + (img.dataset.file||"");
+      img.style.display = (!q || t.toLowerCase().includes(q)) ? "" : "none";
     });
   };
 }
 
-/* ===== album loader ===== */
+/* ===== album loader =====
+   Ưu tiên JSON list ảnh:
+   1) Gallery/<Album>/index.json  -> [{src,title?}, ...]
+   2) Gallery/<Album>.json        -> ["file.ext", ...] hoặc [{src,title}]
+   3) Fallback tự dò số ảnh (1..N)
+*/
 async function loadAlbum(album){
-  titleEl.textContent = album;
+  titleEl.textContent = album || "—";
   stack.innerHTML="";
 
-  // 1) ưu tiên index.json nếu có
+  // 1) /Gallery/<Album>/index.json (mảng object)
   try{
-    const r = await fetch(`/Gallery/${album}/index.json?`+Date.now());
+    const r = await fetch(`Gallery/${album}/index.json?`+Date.now());
     if(r.ok){
       const arr = await r.json();
       if(Array.isArray(arr) && arr.length){
-        hintEl.textContent = `Nguồn: /Gallery/${album}/index.json`;
-        for(const it of arr){
+        hintEl.textContent = `Nguồn: Gallery/${album}/index.json`;
+        arr.forEach(it=>{
+          const file = (typeof it === "string") ? it : it.src;
+          const title = (typeof it === "object" && it.title) ? it.title : file;
           const img = document.createElement("img");
           img.className="img"; img.loading="lazy";
-          img.alt = it.title || it.src || "";
-          setSmartSrc(img, [ `/Gallery/${album}/${it.src}` ]);
+          img.alt = title || file || "";
+          img.dataset.file = file;
+          setSmartSrc(img, [ `Gallery/${album}/${file}` ]);
           stack.appendChild(img);
-        }
+        });
         attachFilter(); return;
       }
     }
   }catch{}
 
-  // 2) không có index.json → tự dò 1..N, dừng khi miss liên tiếp = 10
-  hintEl.textContent = `Nguồn: /Gallery/${album} (tự dò số ảnh)`;
-  let i=1, miss=0, MAX_MISS=10, BATCH=20, loading=false;
+  // 2) /Gallery/<Album>.json (mảng tên file hoặc object)
+  try{
+    const r = await fetch(`Gallery/${album}.json?`+Date.now());
+    if(r.ok){
+      const arr = await r.json();
+      if(Array.isArray(arr) && arr.length){
+        hintEl.textContent = `Nguồn: Gallery/${album}.json`;
+        arr.forEach(it=>{
+          const file = (typeof it === "string") ? it : it.src;
+          const title = (typeof it === "object" && it.title) ? it.title : file;
+          const img = document.createElement("img");
+          img.className="img"; img.loading="lazy";
+          img.alt = title || file || "";
+          img.dataset.file = file;
+          setSmartSrc(img, [ `Gallery/${album}/${file}` ]);
+          stack.appendChild(img);
+        });
+        attachFilter(); return;
+      }
+    }
+  }catch{}
 
+  // 3) Fallback: tự dò số 1..N
+  hintEl.textContent = `Nguồn: Gallery/${album} (tự dò số ảnh)`;
+  let i=1, miss=0, MAX_MISS=10, BATCH=20, loading=false;
   const sentinel = document.createElement("div"); sentinel.style.height="1px"; stack.appendChild(sentinel);
-  const observer = new IntersectionObserver(entries=>{
-    entries.forEach(e=>{ if(e.isIntersecting) addBatch(); });
-  }, {root:null, rootMargin:"800px 0px", threshold:0.01});
-  observer.observe(sentinel);
+  const io = new IntersectionObserver(es=>{ es.forEach(e=>{ if(e.isIntersecting) addBatch(); }); }, {root:null, rootMargin:"800px 0px", threshold:0.01});
+  io.observe(sentinel);
 
   function addBatch(){
     if(loading) return; loading=true;
@@ -156,17 +179,12 @@ async function loadAlbum(album){
     for(; i<end; i++){
       const img = document.createElement("img");
       img.className="img"; img.loading="lazy"; img.alt = `Page ${i}`;
+      img.dataset.file = `#${i}`;
       const urls = candidatesFor(album, i);
-      img.addEventListener("error", ()=>{ /* handled in setSmartSrc */ });
       img.addEventListener("load", ()=>{ miss=0; });
       setSmartSrc(img, urls);
-      img.addEventListener("error", ()=>{ if(img.naturalWidth===0) { /* fallback counted in setSmartSrc */ } });
-      // đếm miss khi mọi url đều fail (sau khi setSmartSrc cạn)
-      img.addEventListener("loadend", ()=>{});
+      setTimeout(()=>{ if(!img.currentSrc){ miss++; if(miss>=MAX_MISS){ io.disconnect(); } } }, 800);
       stack.appendChild(img);
-
-      // heuristic: khi ảnh không set src thành công (hết urls), ta coi như miss++:
-      setTimeout(()=>{ if(!img.currentSrc) { miss++; if(miss>=MAX_MISS){ observer.disconnect(); } } }, 800);
     }
     loading=false;
   }
@@ -176,7 +194,7 @@ async function loadAlbum(album){
 
 /* ===== init ===== */
 loadAlbums();
-if(albumParam){ loadAlbum(albumParam); }
+if (albumParam) loadAlbum(albumParam);
 </script>
 </body>
 </html>
