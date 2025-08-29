@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>iHentai · Gallery</title>
+<meta name="theme-color" content="#0e1117">
+<style>
+:root{
+  --bg:#0d0f12; --panel:#11141b; --card:#161b26; --text:#e8eef6; --muted:#a9b4c7;
+  --bd:#222a3a; --accent:#7aa7ff; --accent2:#ffd36e;
+}
+*{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+
+/* top bar */
+.topbar{position:sticky;top:0;z-index:40;background:var(--panel);border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;gap:10px;padding:10px 12px}
+.iconbtn{width:36px;height:36px;border:1px solid var(--bd);border-radius:10px;background:#121724;display:grid;place-items:center;cursor:pointer}
+.brand{font-weight:800;letter-spacing:.2px}
+.brand i{font-style:normal;color:var(--accent)}
+.top-actions{margin-left:auto;display:flex;gap:10px}
+.search{flex:1;display:flex;gap:8px}
+.search input{flex:1;background:var(--card);border:1px solid var(--bd);color:var(--text);padding:10px;border-radius:12px}
+
+/* menu (album list) */
+.menu-panel{
+  position:fixed;top:58px;left:12px;z-index:50;width:270px;max-height:70vh;overflow:auto;
+  background:var(--panel);border:1px solid var(--bd);border-radius:12px;padding:8px;display:none;
+  box-shadow:0 10px 30px rgba(0,0,0,.35)
+}
+.menu-panel.open{display:block}
+.menu-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--text);text-decoration:none}
+.menu-item:hover{background:#0f1420}
+.menu-caption{font-size:12px;color:var(--muted);margin:6px 10px 2px}
+
+/* layout gallery */
+.wrap{max-width:980px;margin:0 auto;padding:12px}
+.album-title{font-weight:800;margin:10px 0 6px}
+.hint{font-size:12px;color:var(--muted);margin-bottom:10px}
+.stack{display:flex;flex-direction:column;gap:10px}
+.pageimg{width:100%;height:auto;display:block;border-radius:12px;border:1px solid var(--bd);background:#0a0d13}
+.pageimg.skel{position:relative}
+.pageimg.skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);transform:translateX(-100%);animation:sh 1.1s infinite}
+@keyframes sh{100%{transform:translateX(100%)}}
+
+/* back to top */
+.totop{position:fixed;right:14px;bottom:16px;z-index:60;border:1px solid var(--bd);background:var(--card);
+  color:var(--text);border-radius:999px;padding:10px 12px;cursor:pointer;display:none}
+.totop.show{display:block}
+
+/* toast */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:20px;background:#101521;
+  color:#dfe6f5;border:1px solid #2a3550;border-radius:12px;padding:10px 14px;font-size:14px;display:none;z-index:70}
+.toast.show{display:block}
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="iconbtn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="menuPanel">☰</div>
+    <div class="brand"><i>i</i>Hentai · <span style="opacity:.9">Gallery</span></div>
+    <div class="search"><input id="q" placeholder="Tìm trong album (tên file / tiêu đề)…"></div>
+    <div class="top-actions">
+      <div class="iconbtn" id="homeBtn" title="Trang chủ">🏠</div>
+    </div>
+  </div>
+
+  <!-- Album Menu -->
+  <nav id="menuPanel" class="menu-panel" role="menu" aria-label="Albums">
+    <div class="menu-caption">Album</div>
+    <div id="albumList"></div>
+    <div class="menu-caption">Mẹo</div>
+    <div style="font-size:12px;color:var(--muted);padding:0 10px 8px">Bạn có thể thêm <code>?album=Tên album</code> trên URL.</div>
+  </nav>
+
+  <div class="wrap">
+    <div id="title" class="album-title">—</div>
+    <div id="hint" class="hint"></div>
+    <div id="stack" class="stack"></div>
+  </div>
+
+  <button id="toTop" class="totop">↑ Lên đầu</button>
+  <div id="toast" class="toast"></div>
+
+<script>
+/* ===== utilities ===== */
+const $ = s => document.querySelector(s);
+const params = new URLSearchParams(location.search);
+const albumParam = params.get("album") || "";
+const qEl = $("#q"), titleEl=$("#title"), hintEl=$("#hint"), stack=$("#stack");
+const toast=$("#toast"), toTop=$("#toTop"), menuBtn=$("#menuBtn"), menuPanel=$("#menuPanel"), albumList=$("#albumList"), homeBtn=$("#homeBtn");
+
+function toastMsg(s){ toast.textContent=s; toast.classList.add("show"); setTimeout(()=>toast.classList.remove("show"),1400); }
+function toggleMenu(){ const open = menuPanel.classList.toggle("open"); menuBtn.setAttribute("aria-expanded",open?"true":"false"); }
+document.addEventListener("click", e => {
+  if(!menuPanel.classList.contains("open")) return;
+  const inside = menuPanel.contains(e.target) || menuBtn.contains(e.target);
+  if(!inside) toggleMenu();
+});
+document.addEventListener("keydown", e => { if(e.key==="Escape" && menuPanel.classList.contains("open")) toggleMenu(); });
+menuBtn.onclick = toggleMenu;
+homeBtn.onclick = () => location.href = "https://zerdata.github.io/";
+
+toTop.onclick = ()=> window.scrollTo({top:0,behavior:"smooth"});
+window.addEventListener("scroll", ()=> { toTop.classList.toggle("show", window.scrollY>600); });
+
+function slugify(s){
+  return String(s||"").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"");
+}
+
+/* ===== Albums loader =====
+   Thứ tự ưu tiên:
+   1) /Gallery/albums.json  -> ["Album A","Album B", ...]
+   2) Nếu không có, mà URL ?album=... có, thì dùng mỗi album đó
+*/
+async function loadAlbums(){
+  try{
+    const r = await fetch("/Gallery/albums.json?"+Date.now());
+    if(r.ok){
+      const arr = await r.json();
+      if(Array.isArray(arr)) return arr;
+    }
+  }catch(e){}
+  return albumParam ? [albumParam] : [];
+}
+
+/* Render danh sách album trong menu */
+function renderAlbumsMenu(albums){
+  albumList.innerHTML = "";
+  if(!albums.length){
+    albumList.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:6px 10px">Chưa có <code>Gallery/albums.json</code>. Bạn có thể vào trực tiếp bằng <code>?album=Tên</code>.</div>';
+    return;
+  }
+  for(const name of albums){
+    const a=document.createElement("a");
+    a.className="menu-item";
+    a.textContent = "📁 " + name;
+    a.href = `?album=${encodeURIComponent(name)}`;
+    albumList.appendChild(a);
+  }
+}
+
+/* ===== Image source helper =====
+   Với 1 index i, sinh nhiều khả năng file:
+   1, 01, 001, 0001 × (jpg,jpeg,png,webp,gif,avif)
+*/
+function candidatesFor(album, i){
+  const nums = [String(i), String(i).padStart(2,"0"), String(i).padStart(3,"0"), String(i).padStart(4,"0")];
+  const exts = ["jpg","jpeg","png","webp","gif","avif"];
+  const out=[];
+  for(const n of nums) for(const e of exts) out.push(`/Gallery/${album}/${n}.${e}`);
+  return out;
+}
+
+/* Gán ảnh với fallback tuần tự, không HEAD */
+function setSmartSrc(img, urls){
+  const next = ()=>{
+    const u = urls.shift();
+    if(!u){ img.classList.remove("skel"); img.alt = (img.alt||"")+" [missing]"; img.dataset.miss="1"; return; }
+    img.src = u;
+  };
+  img.onerror = next;
+  img.onload = ()=> img.classList.remove("skel");
+  next();
+}
+
+/* ===== Album viewer =====
+   Hai cách nạp:
+   - Có /Gallery/<Album>/index.json => [{src:"001.jpg", title:"..."}, ...]
+   - Không có => Tạo vô hạn, thử dần 1..N; dừng khi miss liên tiếp = 10
+*/
+async function loadAlbum(album){
+  titleEl.textContent = album || "—";
+  stack.innerHTML = "";
+  qEl.value = "";
+
+  // cố gắng dùng index.json
+  let list = null;
+  try{
+    const r = await fetch(`/Gallery/${album}/index.json?`+Date.now());
+    if(r.ok){
+      const arr = await r.json();
+      if(Array.isArray(arr)) list = arr.map(o => ({src:o.src, title:o.title||o.src}));
+    }
+  }catch(e){}
+
+  if(list){ // có index.json
+    hintEl.textContent = "Nguồn: /Gallery/"+album+"/index.json";
+    for(const it of list){
+      const img = document.createElement("img");
+      img.className = "pageimg skel";
+      img.loading = "lazy";
+      img.alt = it.title || it.src || "";
+      setSmartSrc(img, [ `/Gallery/${album}/${it.src}` ]);
+      stack.appendChild(img);
+    }
+    attachFilter();
+    return;
+  }
+
+  // không có index.json -> chế độ dự đoán vô hạn
+  hintEl.textContent = "Nguồn: /Gallery/"+album+" (tự dò số thứ tự)";
+  let i = 1, miss = 0, MAX_MISS = 10, BATCH = 20, loading=false;
+
+  const loadBatch = ()=>{
+    if(loading) return; loading = true;
+    const end = i + BATCH;
+    for(; i < end; i++){
+      const img = document.createElement("img");
+      img.className = "pageimg skel";
+      img.loading = "lazy";
+      img.alt = "Page "+i;
+      img.dataset.index = i;
+      const urls = candidatesFor(album, i);
+      setSmartSrc(img, urls);
+      img.addEventListener("load", ()=>{ img.dataset.miss=""; });
+      img.addEventListener("error", ()=>{ /* handled by setSmartSrc */ });
+
+      // quan sát để đếm miss
+      img.addEventListener("loadstart", ()=>{});
+      img.addEventListener("load", ()=>{ miss = 0; });
+      img.addEventListener("error", ()=>{
+        if(img.dataset.miss==="1"){ miss++; if(miss>=MAX_MISS){ observer.disconnect(); toastMsg("Hết ảnh trong album"); } }
+      });
+
+      stack.appendChild(img);
+    }
+    loading=false;
+  };
+
+  // lazy thêm batch khi gần cuối
+  const sentinel = document.createElement("div"); sentinel.style.height="1px";
+  stack.appendChild(sentinel);
+  const observer = new IntersectionObserver((ents)=>{
+    ents.forEach(e=>{
+      if(e.isIntersecting){ loadBatch(); }
+    });
+  }, {root:null, rootMargin:"1200px 0px", threshold:0.01});
+  observer.observe(sentinel);
+
+  // nạp lô đầu
+  loadBatch();
+  attachFilter();
+}
+
+/* ===== filter theo ô search (ẩn ảnh không khớp) ===== */
+function attachFilter(){
+  qEl.oninput = ()=>{
+    const q = qEl.value.trim().toLowerCase();
+    const all = Array.from(stack.querySelectorAll(".pageimg"));
+    all.forEach(img=>{
+      const txt = (img.alt || "").toLowerCase();
+      img.style.display = (!q || txt.includes(q)) ? "" : "none";
+    });
+  };
+}
+
+/* ===== init ===== */
+(async function init(){
+  // Albums menu
+  const albums = await loadAlbums();
+  renderAlbumsMenu(albums);
+
+  // Mở album theo URL (?album=)
+  if(albumParam){
+    await loadAlbum(albumParam);
+  }else{
+    titleEl.textContent = "Chọn album trong menu";
+    hintEl.textContent = "Menu góc trái ▣";
+  }
+})();
+</script>
+</body>
+</html>
