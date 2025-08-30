@@ -96,7 +96,7 @@ async function loadAlbums(){
 /* ===== helpers ===== */
 function candidatesFor(album, i){
   const nums = [String(i), String(i).padStart(2,"0"), String(i).padStart(3,"0"), String(i).padStart(4,"0")];
-  const exts = ["jpg","jpeg","png","webp","gif","avif","pic256"]; // hỗ trợ .pic256
+  const exts = ["jpg","jpeg","png","webp","gif","avif","pic256","pic256ex"]; // hỗ trợ .pic256
   const out=[]; for(const n of nums) for(const e of exts) out.push(`Gallery/${album}/${n}.${e}`); return out;
 }
 function setSmartSrc(img, urls){
