@@ -2,216 +2,118 @@
 <html lang="vi">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>iHentai · Gallery</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>iHentai · Home</title>
 <meta name="theme-color" content="#0d0f12">
 <style>
-  :root{--bg:#0d0f12;--panel:#11141b;--text:#e8eef6;--muted:#a9b4c7;--bd:#222a3a;--accent:#7aa7ff;--accent2:#ffd36e;}
-  html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-  /* topbar */
-  .top{position:sticky;top:0;z-index:10;background:var(--panel);border-bottom:1px solid var(--bd);display:flex;gap:8px;align-items:center;padding:8px 10px}
-  .btn{display:grid;place-items:center;width:36px;height:36px;border:1px solid var(--bd);border-radius:10px;background:#121724;color:var(--text);cursor:pointer}
-  .brand{font-weight:800} .brand i{font-style:normal;color:var(--accent)}
-  .search{flex:1} .search input{width:100%;padding:9px 12px;border:1px solid var(--bd);background:#121724;color:var(--text);border-radius:10px}
-  /* menu */
-  .menu{position:fixed;top:54px;left:10px;z-index:20;display:none;width:260px;max-height:70vh;overflow:auto;background:var(--panel);border:1px solid var(--bd);border-radius:10px}
-  .menu.open{display:block}
-  .menu h4{margin:10px 12px 6px;font-size:13px;color:var(--muted);font-weight:600}
-  .menu a{display:block;color:var(--text);text-decoration:none;padding:10px 12px;border-radius:8px;margin:4px 6px}
+  :root{
+    --bg:#0d0f12; --panel:#11141b; --card:#161b26; --text:#e8eef6; --muted:#a9b4c7;
+    --bd:#222a3a; --accent:#7aa7ff; --accent2:#ffd36e;
+  }
+  *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+
+  /* top bar */
+  .topbar{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1px solid var(--bd);
+          padding:10px 12px;display:flex;align-items:center;gap:10px}
+  .iconbtn{width:36px;height:36px;border:1px solid var(--bd);border-radius:10px;background:#121724;display:grid;place-items:center;cursor:pointer}
+  .brand{font-weight:800;letter-spacing:.2px}
+  .brand i{font-style:normal;color:var(--accent)}
+  .top-actions{margin-left:auto;display:flex;gap:10px}
+
+  /* side menu */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:40}
+  .overlay.open{display:block}
+  .menu{position:fixed;inset-block:0;inset-inline-start:0;width:280px;background:var(--panel);
+        border-right:1px solid var(--bd);transform:translateX(-100%);transition:.18s ease;z-index:41}
+  .overlay.open .menu{transform:translateX(0)}
+  .menu header{padding:14px;border-bottom:1px solid var(--bd);font-weight:800}
+  .menu a{display:flex;gap:10px;align-items:center;padding:12px 14px;color:var(--text);
+          text-decoration:none;border-bottom:1px solid rgba(255,255,255,.04)}
   .menu a:hover{background:#0f1420}
-  /* layout */
-  .wrap{max-width:980px;margin:0 auto;padding:10px}
-  .title{font-weight:800;margin:8px 0 4px}
-  .hint{font-size:12px;color:var(--muted);margin-bottom:10px}
-  .stack{display:flex;flex-direction:column;gap:10px}
-  .img{width:100%;height:auto;border:1px solid var(--bd);border-radius:10px;background:#0a0d13;display:block}
-  /* floating buttons */
-  .topbtn{position:fixed;right:12px;bottom:14px;border:1px solid var(--bd);background:#121724;color:var(--text);border-radius:999px;padding:8px 12px;display:none}
-  .topbtn.show{display:block}
-  .randbtn{position:fixed;right:12px;bottom:64px;border:1px solid #3a5fa8;background:var(--accent);color:#061225;border-radius:999px;padding:10px 14px;font-weight:700;display:none;box-shadow:0 2px 10px rgba(0,0,0,.35);cursor:pointer}
-  .randbtn.show{display:inline-block}
+  .menu a.active{background:#0f1420;outline:1px solid #22314d}
+
+  /* page */
+  .wrap{max-width:980px;margin:0 auto;padding:18px}
+  .hero{background:linear-gradient(145deg,#0f141f 0%,#0e1117 60%);border:1px solid var(--bd);
+        border-radius:16px;padding:22px}
+  .hero h1{margin:0 0 8px;font-size:22px}
+  .muted{color:var(--muted)}
+  .cards{display:grid;gap:12px;margin-top:14px;grid-template-columns:1fr}
+  @media(min-width:760px){.cards{grid-template-columns:repeat(3,1fr)}}
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px}
+  .card h3{margin:0 0 6px}
+  .go{display:inline-block;margin-top:8px;padding:8px 10px;border-radius:10px;background:var(--accent);
+      color:#061225;font-weight:700;text-decoration:none;border:1px solid #3a5fa8}
 </style>
 </head>
 <body>
+  <!-- topbar -->
+  <div class="topbar">
+    <button class="iconbtn" id="menuBtn" title="Menu">☰</button>
+    <div class="brand"><i>i</i>Hentai · <span style="opacity:.9">Home</span></div>
+    <div class="top-actions">
+      <button class="iconbtn" id="themeBtn" title="Chế độ tối/sáng">☾</button>
+    </div>
+  </div>
 
-<header class="top">
-  <button id="menuBtn" class="btn" title="Album">☰</button>
-  <div class="brand"><i>i</i>Hentai · Gallery</div>
-  <div class="search"><input id="q" placeholder="Tìm trong album…"></div>
-  <button id="homeBtn" class="btn" title="Trang chủ">🏠</button>
-</header>
+  <!-- side menu -->
+  <div id="overlay" class="overlay">
+    <nav class="menu" role="navigation" aria-label="Main">
+      <header>Danh mục</header>
+      <a href="/" data-path="/" id="lnk-home">Trang chủ</a>
+      <a href="/data1/" data-path="/data1/" id="lnk-gallery">Gallery</a>
+      <a href="/data2/" data-path="/data2/" id="lnk-cosplay">Cosplay Gallery</a>
+    </nav>
+  </div>
 
-<nav id="menu" class="menu" aria-label="Albums">
-  <h4>Album</h4>
-  <div id="albumList" style="padding-bottom:6px"></div>
-</nav>
-
-<main class="wrap">
-  <div id="title" class="title">Chọn album trong menu</div>
-  <div id="hint" class="hint">Hoặc mở trực tiếp: <code>?album=TênAlbum</code></div>
-  <div id="stack" class="stack"></div>
-</main>
-
-<button id="toTop" class="topbtn" title="Lên đầu">↑</button>
-<button id="randomBtn" class="randbtn" title="Random ảnh">🎲 Random</button>
+  <!-- content -->
+  <main class="wrap">
+    <section class="hero">
+      <h1>Chào mừng đến iHentai</h1>
+      <div class="muted">Dùng menu ☰ để mở các mục: Trang chủ, Gallery ảnh, và Cosplay Gallery.</div>
+      <div class="cards">
+        <div class="card">
+          <h3>Gallery</h3>
+          <div class="muted">Xem album ảnh (data1) – hỗ trợ index.json / albums.json.</div>
+          <a class="go" href="/data1/">Mở Gallery</a>
+        </div>
+        <div class="card">
+          <h3>Cosplay Gallery</h3>
+          <div class="muted">Trang cosplay tách riêng (data2).</div>
+          <a class="go" href="/data2/">Mở Cosplay</a>
+        </div>
+        <div class="card">
+          <h3>Archive</h3>
+          <div class="muted">Trang xem video Archive (nếu bạn giữ ở repo chính).</div>
+          <a class="go" href="/index.html#archive">Xem thêm</a>
+        </div>
+      </div>
+    </section>
+  </main>
 
 <script>
-const $ = s => document.querySelector(s);
-const menu = $("#menu"), menuBtn=$("#menuBtn"), albumList=$("#albumList");
-const qEl=$("#q"), titleEl=$("#title"), hintEl=$("#hint"), stack=$("#stack");
-const toTop=$("#toTop"), homeBtn=$("#homeBtn"), randomBtn=$("#randomBtn");
-const params = new URLSearchParams(location.search);
-const albumParam = params.get("album") || "";
+  // mở/đóng menu
+  const overlay = document.getElementById('overlay');
+  const menuBtn = document.getElementById('menuBtn');
+  menuBtn.onclick = ()=> overlay.classList.add('open');
+  overlay.addEventListener('click', (e)=>{ if(e.target===overlay) overlay.classList.remove('open'); });
+  document.addEventListener('keydown', e=>{ if(e.key==='Escape') overlay.classList.remove('open'); });
 
-menuBtn.onclick = () => { menu.classList.toggle("open"); };
-document.addEventListener("click", e => { if(menu.classList.contains("open") && !menu.contains(e.target) && e.target!==menuBtn) menu.classList.remove("open"); });
-document.addEventListener("keydown", e=>{ if(e.key==="Escape") menu.classList.remove("open"); });
-homeBtn.onclick = ()=> location.href="https://zerdata.github.io/";
-toTop.onclick = ()=> window.scrollTo({top:0,behavior:"smooth"});
-window.addEventListener("scroll", ()=> toTop.classList.toggle("show", scrollY>600));
-
-/* ===== albums menu ===== */
-async function loadAlbums(){
-  try{
-    const r = await fetch("Gallery/albums.json?"+Date.now());
-    if(r.ok){
-      const arr = await r.json();
-      if(Array.isArray(arr)){
-        albumList.innerHTML = "";
-        arr.forEach(item=>{
-          const id = (typeof item==="string") ? item : (item.id||item.title||"");
-          const title = (typeof item==="string") ? item : (item.title||id);
-          const a=document.createElement("a");
-          a.href = `?album=${encodeURIComponent(id)}`;
-          a.textContent = "📁 " + title;
-          albumList.appendChild(a);
-        });
-        return;
-      }
-    }
-  }catch{}
-  albumList.innerHTML = '<div style="color:#a9b4c7;font-size:12px;margin:6px 12px">Chưa có <code>Gallery/albums.json</code>. Dùng <code>?album=Tên</code>.</div>';
-}
-
-/* ===== helpers ===== */
-function candidatesFor(album, i){
-  const nums = [String(i), String(i).padStart(2,"0"), String(i).padStart(3,"0"), String(i).padStart(4,"0")];
-  const exts = ["jpg","jpeg","png","webp","gif","avif","pic256","pic256ex"]; // hỗ trợ .pic256
-  const out=[]; for(const n of nums) for(const e of exts) out.push(`Gallery/${album}/${n}.${e}`); return out;
-}
-function setSmartSrc(img, urls){
-  const next = ()=>{ const u = urls.shift(); if(!u){ img.dataset.failed="1"; return; } img.src = u; };
-  img.onerror = next; img.onload = ()=>{}; next();
-}
-function attachFilter(){
-  qEl.oninput = ()=>{
-    const q = qEl.value.trim().toLowerCase();
-    stack.querySelectorAll("img.img").forEach(img=>{
-      const t = (img.alt||"") + " " + (img.dataset.file||"");
-      img.style.display = (!q || t.toLowerCase().includes(q)) ? "" : "none";
+  // set active link theo path hiện tại
+  (function markActive(){
+    const p = location.pathname.endsWith('/') ? location.pathname : location.pathname + '/';
+    document.querySelectorAll('.menu a[data-path]').forEach(a=>{
+      const ap = a.getAttribute('data-path');
+      if (p===ap) a.classList.add('active');
     });
-  };
-}
+  })();
 
-/* ===== album loader ===== */
-async function loadAlbum(album){
-  titleEl.textContent = album || "—";
-  stack.innerHTML="";
-  randomBtn.classList.remove("show");
-
-  // 1) /Gallery/<Album>/index.json (mảng object hoặc string)
-  try{
-    const r = await fetch(`Gallery/${album}/index.json?`+Date.now());
-    if(r.ok){
-      const arr = await r.json();
-      if(Array.isArray(arr) && arr.length){
-        hintEl.textContent = `Nguồn: Gallery/${album}/index.json`;
-        arr.forEach(it=>{
-          const file = (typeof it === "string") ? it : it.src;
-          const title = (typeof it === "object" && it.title) ? it.title : file;
-          const img = document.createElement("img");
-          img.className="img"; img.loading="lazy";
-          img.alt = title || file || "";
-          img.dataset.file = file;
-          setSmartSrc(img, [ `Gallery/${album}/${file}` ]);
-          stack.appendChild(img);
-        });
-        attachFilter(); randomBtn.classList.add("show"); return;
-      }
-    }
-  }catch{}
-
-  // 2) /Gallery/<Album>.json
-  try{
-    const r = await fetch(`Gallery/${album}.json?`+Date.now());
-    if(r.ok){
-      const arr = await r.json();
-      if(Array.isArray(arr) && arr.length){
-        hintEl.textContent = `Nguồn: Gallery/${album}.json`;
-        arr.forEach(it=>{
-          const file = (typeof it === "string") ? it : it.src;
-          const title = (typeof it === "object" && it.title) ? it.title : file;
-          const img = document.createElement("img");
-          img.className="img"; img.loading="lazy";
-          img.alt = title || file || "";
-          img.dataset.file = file;
-          setSmartSrc(img, [ `Gallery/${album}/${file}` ]);
-          stack.appendChild(img);
-        });
-        attachFilter(); randomBtn.classList.add("show"); return;
-      }
-    }
-  }catch{}
-
-  // 3) Fallback: tự dò số 1..N
-  hintEl.textContent = `Nguồn: Gallery/${album} (tự dò số ảnh)`;
-  let i=1, miss=0, MAX_MISS=10, BATCH=20, loading=false;
-  const sentinel = document.createElement("div"); sentinel.style.height="1px"; stack.appendChild(sentinel);
-  const io = new IntersectionObserver(es=>{ es.forEach(e=>{ if(e.isIntersecting) addBatch(); }); }, {root:null, rootMargin:"800px 0px", threshold:0.01});
-  io.observe(sentinel);
-
-  function addBatch(){
-    if(loading) return; loading=true;
-    const end = i + BATCH;
-    for(; i<end; i++){
-      const img = document.createElement("img");
-      img.className="img"; img.loading="lazy"; img.alt = `Page ${i}`;
-      img.dataset.file = `#${i}`;
-      const urls = candidatesFor(album, i);
-      img.addEventListener("load", ()=>{ miss=0; });
-      setSmartSrc(img, urls);
-      setTimeout(()=>{ if(!img.currentSrc){ miss++; if(miss>=MAX_MISS){ io.disconnect(); } } }, 800);
-      stack.appendChild(img);
-    }
-    loading=false;
-  }
-  addBatch();
-  attachFilter();
-  randomBtn.classList.add("show"); // vẫn cho random với fallback
-}
-
-/* ===== Random button ===== */
-function pickVisibleImages(){
-  return Array.from(stack.querySelectorAll("img.img")).filter(img=>img.offsetParent!==null);
-}
-randomBtn.onclick = ()=>{
-  const imgs = pickVisibleImages();
-  if(!imgs.length) return;
-  const idx = Math.floor(Math.random()*imgs.length);
-  const target = imgs[idx];
-
-  // nếu ảnh chưa có src (lazy) thì đặt src trước
-  if(!target.currentSrc && target.dataset.file){
-    setSmartSrc(target, [ `Gallery/${titleEl.textContent}/${target.dataset.file}` ]);
-  }
-  target.scrollIntoView({behavior:"smooth", block:"center"});
-  target.style.outline=`3px solid ${getComputedStyle(document.documentElement).getPropertyValue('--accent2')}`;
-  setTimeout(()=>target.style.outline="",1800);
-};
-
-/* ===== init ===== */
-loadAlbums();
-if (albumParam) loadAlbum(albumParam);
+  // theme toggle đơn giản (tuỳ chọn)
+  const themeBtn = document.getElementById('themeBtn');
+  const k = 'ihentai-color-scheme';
+  const set = m => { document.documentElement.dataset.theme = m; localStorage.setItem(k,m); themeBtn.textContent = (m==='dark'?'☾':'☀'); };
+  set(localStorage.getItem(k)||'dark');
+  themeBtn.onclick = ()=> set((localStorage.getItem(k)||'dark')==='dark' ? 'light' : 'dark');
 </script>
 </body>
 </html>
